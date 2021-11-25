@@ -10,8 +10,8 @@ chatbot = ChatBot("Bot", read_only=True,logic_adapters=[
 
 trainer = ChatterBotCorpusTrainer(chatbot)
 
-trainer.train("chatterbot.corpus.custom.english")
+trainer.train("chatterbot.corpus.english")
 
 while(True):
     reply = chatbot.get_response(input("->"))
-    print(reply.get_tags())
+    print(reply)
