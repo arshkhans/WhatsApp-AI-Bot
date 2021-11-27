@@ -83,22 +83,26 @@ def openUnread(scrolls=1):
  
  
 def sendreply():
-    isImage = False
     soup = BeautifulSoup(driver.page_source, "html.parser")
     for i in soup.find_all("div", class_="message-in"):
+        latest = i
+    text = latest.find("div", class_="_22Msk")
+    img = latest.find("div", class_="cm280p3y")
+    if text:
         try:
             message = i.find("span", class_="selectable-text").text
-            isImage = False
+            reply = chatbot.get_response(message)
+            inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
+            input_box = getElement(inp_xpath)
+            input_box.send_keys(reply.text + Keys.ENTER)
         except:
-            isImage = True
-    
-    if isImage:
+            reply = "I can't understand emojis"
+            inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
+            input_box = getElement(inp_xpath)
+            input_box.send_keys(reply + Keys.ENTER)
+    elif img:
         reverseImageSearch()
-    else:
-        reply = chatbot.get_response(message)
-        inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
-        input_box = getElement(inp_xpath)
-        input_box.send_keys(reply.text + Keys.ENTER)
+        
 
 def sendImgLinks(urls):
     inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'

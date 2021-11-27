@@ -1,10 +1,9 @@
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 
-import re
 import nltk.corpus
 from nltk.corpus import nps_chat
-import pandas as pd
+
 # nltk.download('nps_chat')
 
 class IsQuestion():
@@ -101,6 +100,8 @@ chatbot = ChatBot("Bot", read_only=True,logic_adapters=[
             'default_response': 'None',
             'maximum_similarity_threshold': 0.90
         }])
+
+
 
 checkQ = IsQuestion()
 
