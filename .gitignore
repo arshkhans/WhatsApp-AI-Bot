@@ -6,6 +6,8 @@ putSession.py
 getSession.py
 key.txt
 correct.py
+test.py
+imageToSave.png
 *.py[cod]
 *$py.class
 

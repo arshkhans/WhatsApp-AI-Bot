@@ -5,28 +5,34 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
+import os
 import time
+import base64
+import pyautogui
+
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 
 
 # Replace below path with the absolute path
 # to chromedriver in your computer
-s = Service(r'C:\Users\khana\Documents\Bot\chromedriver_win32\chromedriver.exe')
+s = Service(r'C:\Users\khana\Documents\WhatsApp-AI-Bot\chromedriver_win32\chromedriver.exe')
 options = webdriver.ChromeOptions()
 options.binary_location = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 driver = webdriver.Chrome(service=s, options=options)
 
 driver.get("https://web.whatsapp.com/")
-wait = WebDriverWait(driver, 1000)
+wait = WebDriverWait(driver, 10)
 
 searchElement = (By.CSS_SELECTOR, "#side > div.uwk68 > div > label > div > div._13NKt.copyable-text.selectable-text")
+imageLoaded = (By.CSS_SELECTOR, "#main > div._1LcQK > div > div._33LGR > div.y8WcF > div:nth-child(10) > div > div.Nm1g1._22AX6 > div > div > div.gndfcl4n.l8fojup5.paxyh2gw.sfeitywo.cqsf3vkf.ajgl1lbb.p357zi0d.ac2vgrno.laorhtua.gfz4du6o.r7fjleex.g0rxnol2 > div._1bJJV")
+
 
 chatbot = ChatBot("Nameless", read_only=True)
 
 trainer = ChatterBotCorpusTrainer(chatbot)
 
-trainer.train("chatterbot.corpus.english" )
+trainer.train("chatterbot.corpus.custom.myown" )
 
 def getElement(selector):
   element = None
@@ -68,6 +74,7 @@ def openUnread(scrolls=1):
         for i in soup.find_all("div", class_="_3OvU8"):
             if i.find("div", class_="_1pJ9J"):
                 username = i.find("span", class_="_3q9s6").text
+                time.sleep(1)
                 enterChat(username)
                 sendreply()
                 closeChat()
@@ -76,13 +83,32 @@ def openUnread(scrolls=1):
  
  
 def sendreply():
+    isImage = False
     soup = BeautifulSoup(driver.page_source, "html.parser")
     for i in soup.find_all("div", class_="message-in"):
-        message = i.find("span", class_="selectable-text").text
-    reply = chatbot.get_response(message)
+        try:
+            message = i.find("span", class_="selectable-text").text
+            isImage = False
+        except:
+            isImage = True
+    
+    if isImage:
+        reverseImageSearch()
+    else:
+        reply = chatbot.get_response(message)
+        inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
+        input_box = getElement(inp_xpath)
+        input_box.send_keys(reply.text + Keys.ENTER)
+
+def sendImgLinks(urls):
     inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
-    input_box = getElement(inp_xpath)
-    input_box.send_keys(reply.text + Keys.ENTER)
+    privewPath = '//div[contains(@class,"a-HbF")]'
+    for i in urls:
+        print(i)
+        input_box = getElement(inp_xpath)
+        input_box.send_keys(i)
+        getElement(privewPath)
+        input_box.send_keys(Keys.ENTER)
 
 
 def closeChat():
@@ -93,6 +119,64 @@ def closeChat():
     closeChatPath = '//div[@class="_2oldI dJxPU"][@aria-label="Close chat"]' 
     closeChat = getElement(closeChatPath)
     closeChat.click()
+
+def getBlobLink():
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    for i in soup.find_all("div", class_="_3IfUe"):
+        blob = i.img["src"]
+    return blob
+
+def getBlobData(driver, uri):
+    result = driver.execute_async_script("""
+    var uri = arguments[0];
+    var callback = arguments[1];
+    var toBase64 = function(buffer){for(var r,n=new Uint8Array(buffer),t=n.length,a=new Uint8Array(4*Math.ceil(t/3)),i=new Uint8Array(64),o=0,c=0;64>c;++c)i[c]="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".charCodeAt(c);for(c=0;t-t%3>c;c+=3,o+=4)r=n[c]<<16|n[c+1]<<8|n[c+2],a[o]=i[r>>18],a[o+1]=i[r>>12&63],a[o+2]=i[r>>6&63],a[o+3]=i[63&r];return t%3===1?(r=n[t-1],a[o]=i[r>>2],a[o+1]=i[r<<4&63],a[o+2]=61,a[o+3]=61):t%3===2&&(r=(n[t-2]<<8)+n[t-1],a[o]=i[r>>10],a[o+1]=i[r>>4&63],a[o+2]=i[r<<2&63],a[o+3]=61),new TextDecoder("ascii").decode(a)};
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = function(){ callback(toBase64(xhr.response)) };
+    xhr.onerror = function(){ callback(xhr.status) };
+    xhr.open('GET', uri);
+    xhr.send();
+    """, uri)
+    if type(result) == int :
+        raise Exception("Request failed with status %s" % result)
+    return base64.b64decode(result)
+
+def saveImage():
+    bytes = getBlobData(driver, getBlobLink())
+    with open("imageToSave.png", "wb") as fh:
+        fh.write(bytes)
+
+def reverseImageSearch():
+    urls = []
+    time.sleep(2)
+    # wait.until(EC.presence_of_element_located(imageLoaded))
+    saveImage()
+    
+    driver.execute_script("window.open('');")
+    driver.switch_to.window(driver.window_handles[1])
+    driver.get("https://tineye.com/")
+    
+    uploadPath = '//label[contains(@id,"upload-button")]'
+    upload = getElement(uploadPath)
+    upload.click()
+    time.sleep(1)
+    
+    pyautogui.write(os.getcwd()+"\imageToSave.png", interval=0.01)
+    pyautogui.press('enter')
+    
+    searchImg = '//div[contains(@class,"row match-row")]'
+    
+    getElement(searchImg)
+    
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    for i in soup.find_all("div", class_="row match-row"):
+        link = i.find("div", class_="col-xs-9 match-details col-sm-9")
+        urls.append(link.find("a")['href'])
+        
+    driver.close()
+    driver.switch_to.window(driver.window_handles[0])
+    sendImgLinks(urls)
 
 
 wait.until(EC.presence_of_element_located(searchElement))
