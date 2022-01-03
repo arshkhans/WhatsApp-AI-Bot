@@ -1,13 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-session.wa 
-session.py
-putSession.py
-getSession.py
-key.txt
-correct.py
-test.py
 imageToSave.png
+test.py
 *.py[cod]
 *$py.class
 

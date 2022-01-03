@@ -10,12 +10,13 @@ import time
 import base64
 import pyautogui
 
+from QuestionDetection import main
+
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
 
 
-# Replace below path with the absolute path
-# to chromedriver in your computer
+# Replace below path with the absolute path to chromedriver in your computer
 s = Service(r'C:\Users\khana\Documents\WhatsApp-AI-Bot\chromedriver_win32\chromedriver.exe')
 options = webdriver.ChromeOptions()
 options.binary_location = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
@@ -26,13 +27,19 @@ wait = WebDriverWait(driver, 10)
 
 searchElement = (By.CSS_SELECTOR, "#side > div.uwk68 > div > label > div > div._13NKt.copyable-text.selectable-text")
 imageLoaded = (By.CSS_SELECTOR, "#main > div._1LcQK > div > div._33LGR > div.y8WcF > div:nth-child(10) > div > div.Nm1g1._22AX6 > div > div > div.gndfcl4n.l8fojup5.paxyh2gw.sfeitywo.cqsf3vkf.ajgl1lbb.p357zi0d.ac2vgrno.laorhtua.gfz4du6o.r7fjleex.g0rxnol2 > div._1bJJV")
+googleSearchBar = (By.CSS_SELECTOR,"#tsf > div:nth-child(1) > div.A8SBwf > div.RNNXgb")
 
+chatbot = ChatBot("Bot", read_only=True,logic_adapters=[
+        {
+            'import_path': 'chatterbot.logic.BestMatch',
+            'default_response': "None",
+            'maximum_similarity_threshold': 0.9
+        }])
 
-chatbot = ChatBot("Nameless", read_only=True)
+checkQ = main.IsQuestion()
 
 trainer = ChatterBotCorpusTrainer(chatbot)
-
-trainer.train("chatterbot.corpus.custom.myown" )
+trainer.train("chatterbot.corpus.custom.greetings")
 
 def getElement(selector):
   element = None
@@ -88,25 +95,93 @@ def sendreply():
         latest = i
     text = latest.find("div", class_="_22Msk")
     img = latest.find("div", class_="cm280p3y")
+    vid = latest.find("div", class_="qkl8S _2HVTy")
     if text:
         try:
             message = i.find("span", class_="selectable-text").text
-            reply = chatbot.get_response(message)
+            if len(message) < 2:
+                reply = "Please provide me with more than one charater"
+            else:
+                reply = chatbot.get_response(message)
+                if reply.text == "None" :
+                    if (checkQ.predict_question(message)):
+                        reply.text = google(message)
+                        driver.close()
+                        driver.switch_to.window(driver.window_handles[0])
+                    else:
+                        reply.text = "I am sorry, but I do not understand."
             inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
             input_box = getElement(inp_xpath)
             input_box.send_keys(reply.text + Keys.ENTER)
-        except:
+        except Exception as ex:
+            print(ex)
             reply = "I can't understand emojis"
             inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
             input_box = getElement(inp_xpath)
             input_box.send_keys(reply + Keys.ENTER)
     elif img:
         reverseImageSearch()
-        
+    elif vid:
+        inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
+        input_box = getElement(inp_xpath) 
+        input_box.send_keys("I dont understand videos" + Keys.ENTER)
+
+
+def google(message):
+    driver.execute_script("window.open('');")
+    driver.switch_to.window(driver.window_handles[1])
+    driver.get("https://www.google.com/search?q="+message)
+    wait.until(EC.presence_of_element_located(googleSearchBar))
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    
+    gTime = soup.find("div", class_="vk_gy vk_sh card-section sL6Rbf")
+    gWeather = soup.find("div", class_="nawv0d")
+    gDef = soup.find("div", class_="lr_container yc7KLc mBNN3d")
+    gWiki = soup.find("div", class_="liYKde g VjDLd")
+    
+    if gTime:
+        return googleTime(gTime)
+    elif gWeather :
+        return googleWeather(gWeather)
+    elif gDef:
+        return googleDef(gDef)
+    elif gWiki:
+        return googleWiki(gWiki)
+    
+    return("I dont understand")
+
+def googleTime(gTime):
+    hh_ss = gTime.find("div", class_="gsrt vk_bk FzvWSb YwPhnf").text
+    loc = gTime.find("span", class_="vk_gy vk_sh").text
+    return loc.strip()+": "+hh_ss
+    
+def googleWeather(gWeather):
+    c = gWeather.find("span", id="wob_tm").text
+    x_arg = '//a[@class="wob_t"][@data-metric="false"]' 
+    change = getElement(x_arg)
+    change.click()
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    f = soup.find("span", id="wob_ttm").text
+    loc = gWeather.find("div", class_="wob_loc q8U8x").text
+    stat = gWeather.find("div", class_="wob_dcp").text
+    return loc+": "+c+" °C"+" | "+f+" °F "+"("+stat+")"
+
+def googleDef(gDef):
+    try:
+        data = gDef.find("div", class_="O5uR6d LTKOO").text
+    except:
+        data = gDef.find("div", class_="LTKOO sY7ric").text
+    return data
+
+def googleWiki(gWiki):
+    data = gWiki.find("div", class_="kno-rdesc").text
+    return data  
 
 def sendImgLinks(urls):
     inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
     privewPath = '//div[contains(@class,"a-HbF")]'
+    input_box = getElement(inp_xpath) 
+    input_box.send_keys("This is what I found on the Internet" + Keys.ENTER)
     for i in urls:
         print(i)
         input_box = getElement(inp_xpath)
