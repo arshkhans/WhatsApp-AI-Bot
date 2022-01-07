@@ -1,7 +1,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 imageToSave.png
-test.py
+googleTest.py
+imageTest.py
 *.py[cod]
 *$py.class
 
