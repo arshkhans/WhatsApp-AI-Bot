@@ -126,6 +126,35 @@ def sendreply():
         input_box = getElement(inp_xpath) 
         input_box.send_keys("I dont understand videos" + Keys.ENTER)
 
+def googleImage():
+    urls = []
+    driver.execute_script("window.open('');")
+    driver.switch_to.window(driver.window_handles[2])
+    driver.get("https://www.google.com/imghp?hl=en")
+    
+    imgIcon = getElement('//div[@class="ZaFQO"]')
+    imgIcon.click()
+    imgUpload = getElement('//a[@class="iOGqzf H4qWMc aXIg1b"]')
+    imgUpload.click()
+    upload = getElement('//input[@id="awyMjb"]')
+    upload.send_keys(os.getcwd()+"\imageToSave.png")
+    
+    image = getElement('//div[@id="Z6bGOb"]')
+    image.click()
+    
+    if getElement('//div[@class="isv-r PNCib MSM1fd BUooTd"]') is None:
+        driver.close()
+        driver.switch_to.window(driver.window_handles[1])
+        return 
+    
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+    for i in soup.find_all("a", class_="VFACy kGQAp sMi44c lNHeqe WGvvNb"):
+        urls.append(i.get('href'))
+    
+    driver.close()
+    driver.switch_to.window(driver.window_handles[1])
+    
+    return urls
 
 def google(message):
     driver.execute_script("window.open('');")
@@ -200,6 +229,7 @@ def closeChat():
     closeChat.click()
 
 def getBlobLink():
+    blob = ""
     soup = BeautifulSoup(driver.page_source, "html.parser")
     for i in soup.find_all("div", class_="_3IfUe"):
         blob = i.img["src"]
@@ -228,7 +258,7 @@ def saveImage():
 
 def reverseImageSearch():
     urls = []
-    time.sleep(2)
+    time.sleep(0.5)
     # wait.until(EC.presence_of_element_located(imageLoaded))
     saveImage()
     
@@ -246,17 +276,17 @@ def reverseImageSearch():
     
     searchImg = '//div[contains(@class,"row match-row")]'
     
-    getElement(searchImg)
-    
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    for i in soup.find_all("div", class_="row match-row"):
-        link = i.find("div", class_="col-xs-9 match-details col-sm-9")
-        urls.append(link.find("a")['href'])
+    if getElement(searchImg) is None:
+        urls = googleImage()
+    else:
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        for i in soup.find_all("div", class_="row match-row"):
+            link = i.find("div", class_="col-xs-9 match-details col-sm-9")
+            urls.append(link.find("a")['href'])
         
     driver.close()
     driver.switch_to.window(driver.window_handles[0])
     sendImgLinks(urls)
-
 
 wait.until(EC.presence_of_element_located(searchElement))
 while(True):
