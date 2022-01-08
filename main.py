@@ -8,9 +8,10 @@ from bs4 import BeautifulSoup
 import os
 import time
 import base64
-import pyautogui
 
-from QuestionDetection import main
+from imageSearch import *
+
+from QuestionDetection.main import *
 
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
@@ -36,7 +37,7 @@ chatbot = ChatBot("Bot", read_only=True,logic_adapters=[
             'maximum_similarity_threshold': 0.9
         }])
 
-checkQ = main.IsQuestion()
+checkQ = IsQuestion()
 
 trainer = ChatterBotCorpusTrainer(chatbot)
 trainer.train("chatterbot.corpus.custom.greetings")
@@ -47,7 +48,7 @@ def getElement(selector):
       element = wait.until(EC.presence_of_element_located((
           By.XPATH, selector)))
   except:
-      print("Could not find")
+      print("Could not find: "+ selector)
   finally:
       return element
 
@@ -206,17 +207,21 @@ def googleWiki(gWiki):
     data = gWiki.find("div", class_="kno-rdesc").text
     return data  
 
-def sendImgLinks(urls):
+def sendImgLinks(urls,text = None):
     inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
     privewPath = '//div[contains(@class,"a-HbF")]'
     input_box = getElement(inp_xpath) 
-    input_box.send_keys("This is what I found on the Internet" + Keys.ENTER)
-    for i in urls:
-        print(i)
-        input_box = getElement(inp_xpath)
-        input_box.send_keys(i)
-        getElement(privewPath)
-        input_box.send_keys(Keys.ENTER)
+    
+    if text is None:
+        input_box.send_keys("This is what I found on the Internet" + Keys.ENTER)
+        for i in urls:
+            print(i)
+            input_box = getElement(inp_xpath)
+            input_box.send_keys(i)
+            getElement(privewPath)
+            input_box.send_keys(Keys.ENTER)
+    else:
+        input_box.send_keys(text + Keys.ENTER)
 
 
 def closeChat():
@@ -261,31 +266,9 @@ def reverseImageSearch():
     time.sleep(0.5)
     # wait.until(EC.presence_of_element_located(imageLoaded))
     saveImage()
-    
-    driver.execute_script("window.open('');")
-    driver.switch_to.window(driver.window_handles[1])
-    driver.get("https://tineye.com/")
-    
-    uploadPath = '//label[contains(@id,"upload-button")]'
-    upload = getElement(uploadPath)
-    upload.click()
-    time.sleep(1)
-    
-    pyautogui.write(os.getcwd()+"\imageToSave.png", interval=0.01)
-    pyautogui.press('enter')
-    
-    searchImg = '//div[contains(@class,"row match-row")]'
-    
-    if getElement(searchImg) is None:
-        urls = googleImage()
-    else:
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        for i in soup.find_all("div", class_="row match-row"):
-            link = i.find("div", class_="col-xs-9 match-details col-sm-9")
-            urls.append(link.find("a")['href'])
-        
-    driver.close()
-    driver.switch_to.window(driver.window_handles[0])
+    urls = imageSeach().reverseImageSearch()
+    if urls is None:
+        sendImgLinks(urls,text = "Unexpected Error")
     sendImgLinks(urls)
 
 wait.until(EC.presence_of_element_located(searchElement))
