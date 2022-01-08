@@ -51,9 +51,6 @@ def getElement(selector):
       return element
 
 def sendMessage(number,message):
-    # search = driver.find_element(searchElement)
-    # search.send_keys(number+Keys.ENTER)
-    
     x_arg = '//span[contains(@title,"' + number + '")]'
     group_title = getElement(x_arg)
     group_title.click()
@@ -177,8 +174,7 @@ def saveImage():
 
 def reverseImageSearch():
     urls = []
-    time.sleep(0.5)
-    # wait.until(EC.presence_of_element_located(imageLoaded))
+    time.sleep(1)
     saveImage()
     urls = imageSeach().reverseImageSearch()
     if urls is None:
