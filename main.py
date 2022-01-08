@@ -5,17 +5,15 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
-import os
 import time
 import base64
 
 from imageSearch import *
-
+from googleQuestion import *
 from QuestionDetection.main import *
 
 from chatterbot import ChatBot
 from chatterbot.trainers import ChatterBotCorpusTrainer
-
 
 # Replace below path with the absolute path to chromedriver in your computer
 s = Service(r'C:\Users\khana\Documents\WhatsApp-AI-Bot\chromedriver_win32\chromedriver.exe')
@@ -89,7 +87,6 @@ def openUnread(scrolls=1):
                 time.sleep(1)
         initial += 10
  
- 
 def sendreply():
     soup = BeautifulSoup(driver.page_source, "html.parser")
     for i in soup.find_all("div", class_="message-in"):
@@ -106,9 +103,7 @@ def sendreply():
                 reply = chatbot.get_response(message)
                 if reply.text == "None" :
                     if (checkQ.predict_question(message)):
-                        reply.text = google(message)
-                        driver.close()
-                        driver.switch_to.window(driver.window_handles[0])
+                        reply.text = google().getGoogle(message)
                     else:
                         reply.text = "I am sorry, but I do not understand."
             inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
@@ -127,86 +122,6 @@ def sendreply():
         input_box = getElement(inp_xpath) 
         input_box.send_keys("I dont understand videos" + Keys.ENTER)
 
-def googleImage():
-    urls = []
-    driver.execute_script("window.open('');")
-    driver.switch_to.window(driver.window_handles[2])
-    driver.get("https://www.google.com/imghp?hl=en")
-    
-    imgIcon = getElement('//div[@class="ZaFQO"]')
-    imgIcon.click()
-    imgUpload = getElement('//a[@class="iOGqzf H4qWMc aXIg1b"]')
-    imgUpload.click()
-    upload = getElement('//input[@id="awyMjb"]')
-    upload.send_keys(os.getcwd()+"\imageToSave.png")
-    
-    image = getElement('//div[@id="Z6bGOb"]')
-    image.click()
-    
-    if getElement('//div[@class="isv-r PNCib MSM1fd BUooTd"]') is None:
-        driver.close()
-        driver.switch_to.window(driver.window_handles[1])
-        return 
-    
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    for i in soup.find_all("a", class_="VFACy kGQAp sMi44c lNHeqe WGvvNb"):
-        urls.append(i.get('href'))
-    
-    driver.close()
-    driver.switch_to.window(driver.window_handles[1])
-    
-    return urls
-
-def google(message):
-    driver.execute_script("window.open('');")
-    driver.switch_to.window(driver.window_handles[1])
-    driver.get("https://www.google.com/search?q="+message)
-    wait.until(EC.presence_of_element_located(googleSearchBar))
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    
-    gTime = soup.find("div", class_="vk_gy vk_sh card-section sL6Rbf")
-    gWeather = soup.find("div", class_="nawv0d")
-    gDef = soup.find("div", class_="lr_container yc7KLc mBNN3d")
-    gWiki = soup.find("div", class_="liYKde g VjDLd")
-    
-    if gTime:
-        return googleTime(gTime)
-    elif gWeather :
-        return googleWeather(gWeather)
-    elif gDef:
-        return googleDef(gDef)
-    elif gWiki:
-        return googleWiki(gWiki)
-    
-    return("I dont understand")
-
-def googleTime(gTime):
-    hh_ss = gTime.find("div", class_="gsrt vk_bk FzvWSb YwPhnf").text
-    loc = gTime.find("span", class_="vk_gy vk_sh").text
-    return loc.strip()+": "+hh_ss
-    
-def googleWeather(gWeather):
-    c = gWeather.find("span", id="wob_tm").text
-    x_arg = '//a[@class="wob_t"][@data-metric="false"]' 
-    change = getElement(x_arg)
-    change.click()
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    f = soup.find("span", id="wob_ttm").text
-    loc = gWeather.find("div", class_="wob_loc q8U8x").text
-    stat = gWeather.find("div", class_="wob_dcp").text
-    return loc+": "+c+" °C"+" | "+f+" °F "+"("+stat+")"
-
-def googleDef(gDef):
-    try:
-        data = gDef.find("div", class_="O5uR6d LTKOO").text
-    except:
-        data = gDef.find("div", class_="LTKOO sY7ric").text
-    return data
-
-def googleWiki(gWiki):
-    data = gWiki.find("div", class_="kno-rdesc").text
-    return data  
-
 def sendImgLinks(urls,text = None):
     inp_xpath = '//div[@class="_13NKt copyable-text selectable-text"][@data-tab="9"]'
     privewPath = '//div[contains(@class,"a-HbF")]'
@@ -222,7 +137,6 @@ def sendImgLinks(urls,text = None):
             input_box.send_keys(Keys.ENTER)
     else:
         input_box.send_keys(text + Keys.ENTER)
-
 
 def closeChat():
     chatSettingPath = '//div[@class="_26lC3"][@data-tab ="6"][@title="Menu"]'
